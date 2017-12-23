@@ -1,0 +1,25 @@
+{
+  "name": "html5-beer-swipe",
+  "version": "1.0.0",
+  "description": "",
+  "source": "./src/index.js",
+  "main": "./dist/bundle.js",
+  "scripts": {
+    "dev": "run-p watch serve",
+    "build": "rollup -c",
+    "watch": "rollup -c -w",
+    "serve": "http-server"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "http-server": "^0.10.0",
+    "microbundle": "^0.2.4",
+    "npm-run-all": "^4.1.2",
+    "rollup-plugin-commonjs": "^8.2.6",
+    "rollup-plugin-node-resolve": "^3.0.0"
+  },
+  "dependencies": {
+    "lodash": "^4.17.4"
+  }
+}
