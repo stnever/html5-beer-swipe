@@ -5,6 +5,7 @@ var outer = 10,
 
 export function init({windowHeight, windowWidth, maxRows, maxCols}) {
   tileSize = Math.floor((windowHeight - (2 * outer)) / maxRows)
+  if ( tileSize % 2 != 0 ) tileSize--
   console.log('tile size is %spx', tileSize)
 
   boardSize = [
@@ -17,9 +18,10 @@ export function getTileSize() { return tileSize }
 
 export function getBoardSize() { return boardSize }
 
+// Retorna a posição x,y do top/left do tile
 export function getPosition(row, col) {
-  var x = outer + col * (tileSize + inner),
-      y = outer + row * (tileSize + inner)
+  var x = outer + (col * (tileSize + inner)),
+      y = outer + (row * (tileSize + inner))
   return [x,y]
 }
 

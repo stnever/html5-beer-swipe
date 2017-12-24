@@ -8,31 +8,42 @@
       * { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; }
 
-      /* .piece { border: 1px solid red; } */
       .background { background-image: url('./assets/background.png'); }
       .tile { background-image: url('./assets/tile.png'); }
 
-      .piece {
-        text-align: center;
+      /* impede que as <img> sejam selecionáveis (se o user
+      arrastar muito o drag) */
+      .piece img {
+        -webkit-touch-callout: none; /* iOS Safari */
+          -webkit-user-select: none; /* Safari */
+           -khtml-user-select: none; /* Konqueror HTML */
+             -moz-user-select: none; /* Firefox */
+              -ms-user-select: none; /* Internet Explorer/Edge */
+                  user-select: none; /* Non-prefixed version, currently
+                                        supported by Chrome and Opera */
+      }
+
+      /* .piece {
         background-position: center center;
         background-repeat: no-repeat;
         background-size: auto 90%;
         transition: all 400ms;
-      }
+      } */
 
-      /* .piece_0::before { content: '0' }
+      /*
+      .piece_0::before { content: '0' }
       .piece_1::before { content: '1' }
       .piece_2::before { content: '2' }
       .piece_3::before { content: '3' }
       .piece_4::before { content: '4' }
       .piece_5::before { content: '5' } */
 
-      .piece_0 { background-image: url('./assets/piece_0.png'); }
+      /* .piece_0 { background-image: url('./assets/piece_0.png'); }
       .piece_1 { background-image: url('./assets/piece_1.png'); }
       .piece_2 { background-image: url('./assets/piece_2.png'); }
       .piece_3 { background-image: url('./assets/piece_3.png'); }
       .piece_4 { background-image: url('./assets/piece_4.png'); }
-      .piece_5 { background-image: url('./assets/piece_5.png'); }
+      .piece_5 { background-image: url('./assets/piece_5.png'); } */
 
     </style>
   </head>

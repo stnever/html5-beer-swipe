@@ -3,6 +3,7 @@ import Sprite from './Sprite.js'
 import Board from './Board'
 import TouchLayer from './TouchLayer'
 import {getBoardSize} from './Coords'
+import {animateSwap} from './Animator'
 
 function isSamePos(posA, posB) {
   return posA[0] == posB[0] && posA[1] == posB[1]
@@ -15,36 +16,41 @@ export default class Stage {
     this.board = new Board({stage: this})
     this.board.randomFill()
 
-    this.detectPossibleSwaps()
+    // this.detectPossibleSwaps()
 
     this.touchLayer = new TouchLayer({stage: this})
   }
 
   trySwap(from, to) {
-    var isValid = _.find(this.possibleSwaps, swap => {
-      return ( ( isSamePos(swap.posA, from) && isSamePos(swap.posB, to) ) ||
-               ( isSamePos(swap.posB, from) && isSamePos(swap.posA, to) ) )
-    }) != null
+    // var isValid = _.find(this.possibleSwaps, swap => {
+    //   return ( ( isSamePos(swap.posA, from) && isSamePos(swap.posB, to) ) ||
+    //            ( isSamePos(swap.posB, from) && isSamePos(swap.posA, to) ) )
+    // }) != null
+    //
+    // if ( !isValid ) {
+    //   console.log('invalid swap')
+    //   return
+    // }
 
-    if ( !isValid ) {
-      console.log('invalid swap')
-    } else {
-      this.performSwap(from[0], from[1], to[0], to[1])
+    // NB: agora que podemos fazer movimentos sem necessariamente
+    // fazer matches, sempre fazemos o swap.
+    this.performSwap(from[0], from[1], to[0], to[1])
 
-      // As peças agora estão nas cells corretas, mas sua position
-      // está errada. Ao chamar o método setPosition(), suas propriedades
-      // left,top são setadas (e transicionadas)
-      var pieceA = this.board.cellAt(from).piece,
-          pieceB = this.board.cellAt(to).piece
+    // As peças agora estão nas cells corretas, mas sua propriedade
+    // .position está errada. Basta avisá-las que elas estão na
+    // mesma position das suas cells.
+    var pieceA = this.board.cellAt(from).piece,
+        pieceB = this.board.cellAt(to).piece
 
-      pieceA.setPosition(from)
-      pieceB.setPosition(to)
+    pieceA.position = from
+    pieceB.position = to
 
-      // TODO: Esperar a animação terminar e retornar uma Promise?
-      // Desligar o input até que a animação termine?
+    // Dispara a animação do swap.
+    animateSwap(pieceA, pieceB)
 
-      this.detectPossibleSwaps()
-    }
+    // TODO: Desligar input até que as animações terminem
+
+    // this.detectPossibleSwaps()
   }
 
   hasMatchAt(row, col) {
