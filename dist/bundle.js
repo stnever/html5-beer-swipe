@@ -17313,6 +17313,18 @@ class Board extends Sprite {
 
 }
 
+function getPos(evt) {
+  var isTouch = evt.touches != null,
+      x = isTouch ? evt.touches[0].clientX : evt.clientX,
+      y = isTouch ? evt.touches[0].clientY : evt.clientY,
+      pos = xyToBoard(x, y);
+
+  // console.log('%s on x,y %s %s (pos: %s)', (isTouch ? 'touch' : 'click'),
+  //   x, y, pos.join())
+
+  return pos
+}
+
 class TouchLayer extends Sprite {
   constructor(opts={}) {
     opts.id = 'touch-layer';
@@ -17320,12 +17332,18 @@ class TouchLayer extends Sprite {
     opts.size = getBoardSize();
     super(opts);
 
-    this.$el.addEventListener('mousedown', evt => this.onStart(evt));
-    this.$el.addEventListener('mousemove', evt => this.onMove(evt));
+    this.$el.addEventListener('mousedown'  , evt => this.onStart(evt));
+    this.$el.addEventListener('mousemove'  , evt => this.onMove(evt));
+    this.$el.addEventListener('mouseup'    , evt => this.onEnd(evt));
+
+    this.$el.addEventListener('touchstart' , evt => this.onStart(evt));
+    this.$el.addEventListener('touchmove'  , evt => this.onMove(evt));
+    this.$el.addEventListener('touchend'   , evt => this.onEnd(evt));
+    this.$el.addEventListener('touchcancel', evt => this.onEnd(evt));
   }
 
   onStart(evt) {
-    var x = evt.clientX, y = evt.clientY, pos = xyToBoard(x, y);
+    var pos = getPos(evt);
 
     // Ignora touch/click que comece fora da board
     if ( this.stage.board.cellAt(pos) == null ) {
@@ -17334,12 +17352,12 @@ class TouchLayer extends Sprite {
     }
 
     this.startPos = pos;
-    console.log('drag started on x,y %s %s (pos %s)', x, y, pos.join());
+    console.log('started on pos %s', pos.join());
   }
 
   onMove(evt) {
     if ( this.startPos == null ) return
-    var x = evt.clientX, y = evt.clientY, pos = xyToBoard(x, y);
+    var pos = getPos(evt);
 
     // Se mudou de cell, valida e dispara o swap.
     if ( pos[0] != this.startPos[0] || pos[1] != this.startPos[1]) {
@@ -17354,6 +17372,10 @@ class TouchLayer extends Sprite {
         this.startPos = null;
       }
     }
+  }
+
+  onEnd(evt) {
+    this.startPos = null;
   }
 }
 
