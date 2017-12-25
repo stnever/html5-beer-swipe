@@ -17206,6 +17206,13 @@ class Piece extends Sprite {
     this.$img.style.left = tsize * .05 + 'px';
   }
 
+  destroy() {
+    // Remove o <div>. Acredito que isto já remove as duas imgs dentro.
+    // Se tivéssemos listeners ou outras referências teríamos que liberá-las
+    // aqui.
+    this.$el.remove();
+  }
+
 }
 
 class Tile extends Sprite {
@@ -17270,6 +17277,7 @@ class Board extends Sprite {
   pieceTypeAt(row, col) {
     var cell = this.cellAt(row, col);
     if ( cell && cell.piece ) return cell.piece.type
+    return null
   }
 
   walk(fn) {
@@ -22141,17 +22149,37 @@ function getTopLeft(pos) {
   return {left: p[0], top: p[1]}
 }
 
-function animateSwap(pieceA, pieceB) {
-  // As peças já possuem sua .position correta (row,col).
-  // Só precisamos animar o top/left de cada uma.
-  velocity(pieceA.$el, getTopLeft(pieceA.position), {easing: [400,30]});
-  velocity(pieceB.$el, getTopLeft(pieceB.position), {easing: [400,30]});
+function noop() {}
+
+function animateSwap(pieceA, pieceB, onComplete=noop) {
+  // As peças já possuem sua .position correta (row,col). Só precisamos
+  // animar o top/left de cada uma. Observe que, como a duração das duas
+  // animações é a mesma, podemos disparar a callback só na segunda.
+  velocity(pieceA.$el, getTopLeft(pieceA.position), {easing: 'easeOut', duration: 200});
+  velocity(pieceB.$el, getTopLeft(pieceB.position), {easing: 'easeOut', duration: 200, complete: onComplete});
+}
+
+function animateRemove(pieces, onComplete=noop) {
+  console.log('Animating remove of %s pieces', pieces.length);
+
+  var $els = lodash.map(pieces, '$img');
+  velocity($els, {scale: 0}, {
+    complete: function() {
+      // Destrói as peças. Isto remove o seu <div> e filhos.
+      pieces.forEach(p => p.destroy());
+
+      // Dispara a callback.
+      onComplete();
+    }
+  });
 }
 
 class Stage {
   constructor({maxRows, maxCols}={}) {
     lodash.assign(this, {maxRows, maxCols});
-    this.bg = new Sprite({cssClass: 'background', size: getBoardSize(), zIndex: 0});
+
+    // O tamanho do background é setado via CSS
+    this.bg = new Sprite({cssClass: 'background', zIndex: 0});
     this.board = new Board({stage: this});
     this.board.randomFill();
 
@@ -22185,10 +22213,14 @@ class Stage {
     pieceB.position = to;
 
     // Dispara a animação do swap.
-    animateSwap(pieceA, pieceB);
+    animateSwap(pieceA, pieceB, () => {
+      // Roda isto apenas quando a animação do swap termina.
+      this.removeMatches();
+    });
 
     // TODO: Desligar input até que as animações terminem
 
+    // Detecta novamente os possíveis swaps.
     // this.detectPossibleSwaps()
   }
 
@@ -22236,26 +22268,21 @@ class Stage {
     this.possibleSwaps = [];
     this.board.walk((cell, row, col) => {
 
-      // debugger
+      // Para detectar swap horizontal, podemos pular a última coluna
+      if ( col < this.maxCols -1 ) {
+        this.performSwap(row, col, row, col+1);
+        if ( this.hasMatchAt(row, col) || this.hasMatchAt(row, col+1) )
+          this.possibleSwaps.push({posA: [row,col], posB: [row, col+1]});
+        this.performSwap(row, col, row, col+1);
+      }
 
-      // pula a última coluna
-      if ( col >= this.maxCols -1 ) return
-
-      // swap horizontal
-      // console.log('-----')
-      this.performSwap(row, col, row, col+1);
-      if ( this.hasMatchAt(row, col) || this.hasMatchAt(row, col+1) )
-        this.possibleSwaps.push({posA: [row,col], posB: [row, col+1]});
-      this.performSwap(row, col, row, col+1);
-
-      // pula a última linha
-      if ( row >= this.maxRows -1 ) return
-
-      // swap vertical
-      this.performSwap(row, col, row+1, col);
-      if ( this.hasMatchAt(row, col) || this.hasMatchAt(row+1, col) )
-        this.possibleSwaps.push({posA: [row,col], posB: [row+1, col]});
-      this.performSwap(row, col, row+1, col);
+      // Para detectar swap vertical, podemos pular a última linha
+      if ( row <= this.maxRows -1 ) {
+        this.performSwap(row, col, row+1, col);
+        if ( this.hasMatchAt(row, col) || this.hasMatchAt(row+1, col) )
+          this.possibleSwaps.push({posA: [row,col], posB: [row+1, col]});
+        this.performSwap(row, col, row+1, col);
+      }
 
     });
 
@@ -22271,6 +22298,14 @@ class Stage {
       for ( var col = 0; col < this.maxCols -2 ; ) { // NB: não tem col++
         var type = typeAt(row, col);
 
+        // Se por alguma razão o type está null, pula esta célula.
+        if ( type == null ) {
+          col++;
+          continue
+        }
+
+        // console.log('detectHorizontalMatches %s,%s %s', row, col, type)
+
         // Se as duas próximas peças forem do mesmo tipo, teremos uma chain.
         if ( typeAt(row, col+1) == type && typeAt(row, col+2) == type ) {
 
@@ -22284,21 +22319,33 @@ class Stage {
           }
 
           matches.push(chain);
+        } else {
+          col++; // NB: incrementa o for interno caso não haja match
         }
       }
     }
 
+    console.log('%s horizontal matches:', matches.length);
+    matches.forEach(m => console.log('%s', m.cells.map(c => c.position.join() + ' ').join(' ')));
     return matches
   }
 
-  detectHorizontalMatches() {
+  detectVerticalMatches() {
     var typeAt = (r,c) => this.board.pieceTypeAt(r,c);
 
     var matches = [];
     // NB: não usamos walk() porque aqui queremos modificar a ordem de iteração
-    for ( var col = 0; row < this.maxCols; col++ ) {
+    for ( var col = 0; col < this.maxCols; col++ ) {
       for ( var row = 0; row < this.maxRows -2 ; ) { // NB: não tem row++
         var type = typeAt(row, col);
+
+        // Se por alguma razão o type está null, pula esta célula.
+        if ( type == null ) {
+          row++;
+          continue
+        }
+
+        // console.log('detectVerticalMatches %s,%s %s', row, col, type)
 
         // Se as duas próximas peças forem do mesmo tipo, teremos uma chain.
         if ( typeAt(row+1, col) == type && typeAt(row+2, col) == type ) {
@@ -22313,11 +22360,37 @@ class Stage {
           }
 
           matches.push(chain);
+        } else {
+          row++;
         }
       }
     }
 
+    console.log('%s vertical matches:', matches.length);
+    matches.forEach(m => console.log('%s', m.cells.map(c => c.position.join() + ' ').join(' ')));
     return matches
+  }
+
+  removeMatches() {
+    // Junta as cells de todos os matches em um array só.
+    var allCells = lodash.flattenDeep([
+      lodash.map(this.detectHorizontalMatches(), 'cells'),
+      lodash.map(this.detectVerticalMatches(), 'cells')
+    ]);
+
+    allCells = lodash.uniq(allCells);
+
+    console.log('Matches', allCells);
+
+    // Guarda uma referência para as peças, para que possamos animá-las
+    var allPieces = lodash.map(allCells, 'piece');
+
+    // Zera a peça em cada cell.
+    allCells.forEach(cell => cell.piece = null);
+
+    // Some com as peças.
+    animateRemove(allPieces);
+
   }
 
 }

@@ -55,6 +55,7 @@ export default class Board extends Sprite {
   pieceTypeAt(row, col) {
     var cell = this.cellAt(row, col)
     if ( cell && cell.piece ) return cell.piece.type
+    return null
   }
 
   walk(fn) {

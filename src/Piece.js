@@ -26,4 +26,11 @@ export default class Piece extends Sprite {
     this.$img.style.left = tsize * .05 + 'px'
   }
 
+  destroy() {
+    // Remove o <div>. Acredito que isto já remove as duas imgs dentro.
+    // Se tivéssemos listeners ou outras referências teríamos que liberá-las
+    // aqui.
+    this.$el.remove()
+  }
+
 }
